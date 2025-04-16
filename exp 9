@@ -1,0 +1,332 @@
+The project is structured as follows:
+hibernate-crud-app/
+├── pom.xml
+├── src
+│   ├── main
+│   │   ├── java
+│   │   │   └── com
+│   │   │       └── example
+│   │   │           ├── MainApp.java
+│   │   │           ├── entities
+│   │   │           │   └── Student.java
+│   │   │           └── util
+│   │   │               └── HibernateUtil.java
+│   │   └── resources
+│   │       └── hibernate.cfg.xml
+└── README.md
+
+1. Maven Configuration (pom.xml)
+This file configures the project, including dependencies for Hibernate, MySQL Connector/J, and logging.
+
+xml
+Copy
+Edit
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"  
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>hibernate-crud-app</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <!-- Hibernate core dependency -->
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>5.4.32.Final</version>
+        </dependency>
+
+        <!-- MySQL Connector dependency -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.23</version>
+        </dependency>
+
+        <!-- Java Persistence API -->
+        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>javax.persistence-api</artifactId>
+            <version>2.2</version>
+        </dependency>
+
+        <!-- SLF4J logging dependencies -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.30</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.30</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Compiler plugin to set Java version -->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+2. Hibernate Configuration (hibernate.cfg.xml)
+Place this file under src/main/resources. Update the connection URL, username, and password to match your MySQL setup.
+
+xml
+Copy
+Edit
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC  
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"  
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <!-- MySQL Database connection settings -->
+        <property name="hibernate.connection.driver_class">com.mysql.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/your_database_name?useSSL=false</property>
+        <property name="hibernate.connection.username">your_username</property>
+        <property name="hibernate.connection.password">your_password</property>
+        <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
+        
+        <!-- Automatically update the schema -->
+        <property name="hibernate.hbm2ddl.auto">update</property>
+        
+        <!-- Display SQL statements in the console -->
+        <property name="show_sql">true</property>
+    </session-factory>
+</hibernate-configuration>
+3. Student Entity (Student.java)
+This is the Hibernate-mapped entity with attributes: id, name, and age. Place this file under src/main/java/com/example/entities/.
+
+java
+Copy
+Edit
+package com.example.entities;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "student")
+public class Student {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Column(name = "age", nullable = false)
+    private int age;
+
+    // Default constructor is needed by Hibernate
+    public Student() {
+    }
+
+    // Parameterized constructor
+    public Student(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    // Getters and setters
+
+    public int getId() {
+        return id;
+    }
+
+    // No setter for id since it is auto-generated
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    // toString method for display purposes
+    @Override
+    public String toString() {
+        return "Student [id=" + id + ", name=" + name + ", age=" + age + "]";
+    }
+}
+4. Hibernate Utility Class (HibernateUtil.java)
+This helper class creates and provides access to the Hibernate SessionFactory. Place this file under src/main/java/com/example/util/.
+
+java
+Copy
+Edit
+package com.example.util;
+
+import org.hibernate.SessionFactory;
+import org.hibernate.cfg.Configuration;
+import com.example.entities.Student;
+
+public class HibernateUtil {
+
+    private static final SessionFactory sessionFactory = buildSessionFactory();
+
+    private static SessionFactory buildSessionFactory() {
+        try {
+            // Create the SessionFactory from hibernate.cfg.xml
+            Configuration configuration = new Configuration();
+            configuration.configure("hibernate.cfg.xml");
+            // Register annotated classes
+            configuration.addAnnotatedClass(Student.class);
+            return configuration.buildSessionFactory();
+        } catch (Throwable ex) {
+            System.err.println("Initial SessionFactory creation failed." + ex);
+            throw new ExceptionInInitializerError(ex);
+        }
+    }
+
+    public static SessionFactory getSessionFactory() {
+        return sessionFactory;
+    }
+
+    public static void shutdown() {
+        // Close caches and connection pools
+        getSessionFactory().close();
+    }
+}
+5. Main Application (MainApp.java)
+This class demonstrates the CRUD operations. Place it under src/main/java/com/example/.
+
+java
+Copy
+Edit
+package com.example;
+
+import com.example.entities.Student;
+import com.example.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+
+import java.util.List;
+
+public class MainApp {
+
+    public static void main(String[] args) {
+
+        // Create a new student and save it to the database
+        Student student1 = new Student("John Doe", 20);
+        Integer studentId = saveStudent(student1);
+
+        // Read the student from the database
+        Student retrievedStudent = getStudent(studentId);
+        System.out.println("Retrieved: " + retrievedStudent);
+
+        // Update the student's details
+        updateStudent(studentId, "John Smith", 21);
+
+        // List all students in the database
+        listStudents();
+
+        // Delete the student from the database
+        deleteStudent(studentId);
+
+        // List all students after deletion
+        listStudents();
+
+        // Shutdown Hibernate
+        HibernateUtil.shutdown();
+    }
+
+    // Create operation
+    public static Integer saveStudent(Student student) {
+        Transaction transaction = null;
+        Integer id = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            id = (Integer) session.save(student);
+            transaction.commit();
+            System.out.println("Student saved with id: " + id);
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            e.printStackTrace();
+        }
+        return id;
+    }
+
+    // Read operation
+    public static Student getStudent(int id) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.get(Student.class, id);
+        }
+    }
+
+    // Update operation
+    public static void updateStudent(int id, String name, int age) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            Student student = session.get(Student.class, id);
+            if (student != null) {
+                student.setName(name);
+                student.setAge(age);
+                session.update(student);
+                System.out.println("Student updated successfully");
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            e.printStackTrace();
+        }
+    }
+
+    // Delete operation
+    public static void deleteStudent(int id) {
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+            Student student = session.get(Student.class, id);
+            if (student != null) {
+                session.delete(student);
+                System.out.println("Student deleted");
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            e.printStackTrace();
+        }
+    }
+
+    // List all students
+    @SuppressWarnings("unchecked")
+    public static void listStudents() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            List<Student> students = session.createQuery("from Student", Student.class).list();
+            System.out.println("Students List:");
+            for (Student s : students) {
+                System.out.println(s);
+            }
+        }
+    }
+}
